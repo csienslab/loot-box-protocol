@@ -3,6 +3,7 @@ import PRB
 from MappingFunction import mappingFunction
 import time
 import csv
+import os
 
 rows = [[sampleSize] for sampleSize in range(30, 101, 5)]
 
@@ -17,9 +18,10 @@ class ProbabilityVerificationServer():
 		# write PK, c, M, n onto bulletin board
 		with open(BulletinBoardDir + CommitmentFileName, 'w') as f:
 			f.write(serializeECC(c))
+		self.contribution = PRB.contribute(os.urandom(32))
             
 	def eval(self):
-		seed = PRB.eval()
+		seed = PRB.eval(self.contribution)
 		testData = mappingFunction.mapToTestData(seed)
 
 		result = []
@@ -43,13 +45,14 @@ class ProbabilityVerificationServer():
 				f.write(str(y.v) + "#" + serializeECC(W))
 				f.write('\n')
 
+client_contribution = PRB.contribute(os.urandom(32))
 def verifyProbability() -> bool:
 	# get commitment c from bulletin board
 	with open(BulletinBoardDir + CommitmentFileName, 'r') as f:
 		s = f.read()
 		c = deserializeEcc(s)
 
-	seed = PRB.eval()
+	seed = PRB.eval(client_contribution)
 	testData = mappingFunction.mapToTestData(seed)
 
 	# get eval proofs from bulletin board
