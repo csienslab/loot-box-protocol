@@ -56,7 +56,6 @@ class FunctionalCommitment():
 
         return y, W
 
-
 def verifyEvalProof(c, input: LootBoxInput, y, W) -> bool:
     i = input.getFieldInput()
     print(f"Verify on input {i}, output {y}, witness {W}, commitment {c}")
@@ -70,6 +69,45 @@ def verifyEvalProof(c, input: LootBoxInput, y, W) -> bool:
     ab = a*b
     return ab == curve.FQ12.one()
 
+from subprocess import check_output
+from os.path import join
+class Rust_FunctionalCommitment():
+    def __init__(self, BulletinBoardDir="") -> None:
+        self.BulletinBoardDir = BulletinBoardDir
+        self.c = [join(BulletinBoardDir, "vk.bin"), join(BulletinBoardDir, "tft.bin")]
+        check_output(["./functional_commitment/commit_function", c[0], c[1]])
+
+        self.eval_cnt = 0
+
+    def getCommitment(self):
+        return self.c
+
+    def evalAndProof(self, input: LootBoxInput):
+        
+        i = int(input.getFieldInput())
+        print(f"Eval on input {i}")
+        
+        a = str(i & 0b111)
+        b = str((i & 0b111000) >> 3)
+        W = join(BulletinBoardDir, f"proof{self.eval_cnt}.bin")
+        self.eval_cnt += 1
+        output = check_output(["./functional_commitment/make_proof", W, a, b])
+        print(output)
+        y = 1 if output == "Win!" else 0
+
+        return y, W
+
+def Rust_verifyEvalProof(c, input: LootBoxInput, y, W) -> bool:
+    i = int(input.getFieldInput())
+    print(f"Verify on input {i}, output {y}, witness {W}, commitment {c}")
+    
+    a = str(i & 0b111)
+    b = str((i & 0b111000) >> 3)
+
+    output = check_output(["./functional_commitment/verify", W, c[0], c[1], a, b, y])
+    print(output)
+
+    return output == "Verify Success!"
 
 if __name__ == "__main__":
     fc = FunctionalCommitment()

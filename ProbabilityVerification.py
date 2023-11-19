@@ -89,11 +89,92 @@ def verifyProbability() -> bool:
 	print(f"Verification done, amount: {len(testData)}, #winning: {winningNumber}, sample winning probability: {winningNumber / len(testData)}")
 	return True
 
+class Rust_ProbabilityVerificationServer():
+	def __init__(self) -> None:
+		pass
+
+	def setup(self):
+		self.fc = Rust_FunctionalCommitment(BulletinBoardDir)
+		c = self.fc.getCommitment()
+		# write PK, c, M, n onto bulletin board
+		with open(BulletinBoardDir + CommitmentFileName, 'w') as f:
+			f.write(c[0] + "#" + c[1])
+		
+		self.contribution = PRB.contribute(os.urandom(32))
+            
+	def eval(self):
+		seed = PRB.eval(self.contribution)
+		testData = mappingFunction.mapToTestData(seed)
+
+		result = []
+		start = time.time()
+		i = 0
+		row = 0
+		for r, o in testData:
+			i += 1
+			input = LootBoxInput(r, o)
+			y, W = self.fc.evalAndProof(input)
+			if i >= 30 and i % 5 == 0:
+				rows[row].append(time.time() - start)
+				row += 1
+
+			result.append((y, W))
+
+		
+		print("Evaluation succeeded, write the evaluation and proofs on the bulletin board.")
+		with open(BulletinBoardDir + EvalProofFileName, 'w') as f:
+			for y, W in result:
+				f.write(str(y) + "#" + W)
+				f.write('\n')
+
+def Rust_verifyProbability() -> bool:
+	# get commitment c from bulletin board
+	with open(BulletinBoardDir + CommitmentFileName, 'r') as f:
+		s = f.read()
+		c = s.strip().split('#')
+
+	seed = PRB.eval(client_contribution)
+	testData = mappingFunction.mapToTestData(seed)
+
+	# get eval proofs from bulletin board
+	evalProofs = []
+	with open(BulletinBoardDir + EvalProofFileName, 'r') as f:
+		for line in f.readlines():
+			a, b = line.strip().split("#")
+			y = a
+			W = b
+			evalProofs.append((y ,W))
+
+	if len(testData) != len(evalProofs):
+		print(f"Inconsistent amount: testData {len(testData)}, evalProofs {len(evalProofs)}")
+		return False
+
+	# verify eval proofs
+	winningNumber = 0
+	row = 0
+	start = time.time()
+	for i in range(len(testData)):
+		r, o = testData[i]
+		input = LootBoxInput(r, o)
+		y, W = evalProofs[i]
+		if not Rust_verifyEvalProof(c, input, y, W):
+			print(f"Verification failed on {i}th input, input: {input}, y: {y}, W: {W}")
+			return False
+		if isWinning(y):
+			winningNumber += 1
+
+		if i+1 >= 30 and (i+1) % 5 == 0:
+			rows[row].append(time.time() - start)
+			row += 1
+		
+	print(f"Verification done, amount: {len(testData)}, #winning: {winningNumber}, sample winning probability: {winningNumber / len(testData)}")
+	return True
+
 def sampleRun():
-	server = ProbabilityVerificationServer()
+	server = Rust_ProbabilityVerificationServer()
 	server.setup()
 	server.eval()
-	verifyProbability()
+	Rust_verifyProbability()
 
 def plotDifferentDegree():
 	server = ProbabilityVerificationServer()
