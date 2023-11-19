@@ -75,7 +75,7 @@ class Rust_FunctionalCommitment():
     def __init__(self, BulletinBoardDir="") -> None:
         self.BulletinBoardDir = BulletinBoardDir
         self.c = [join(BulletinBoardDir, "vk.bin"), join(BulletinBoardDir, "tft.bin")]
-        check_output(["./functional_commitment/commit_function", c[0], c[1]])
+        check_output(["./functional-commitment/commit_function", self.c[0], self.c[1]])
 
         self.eval_cnt = 0
 
@@ -91,8 +91,8 @@ class Rust_FunctionalCommitment():
         b = str((i & 0b111000) >> 3)
         W = join(BulletinBoardDir, f"proof{self.eval_cnt}.bin")
         self.eval_cnt += 1
-        output = check_output(["./functional_commitment/make_proof", W, a, b])
-        print(output)
+        output = check_output(["./functional-commitment/make_proof", W, a, b]).strip().decode()
+        print(a, b, output)
         y = 1 if output == "Win!" else 0
 
         return y, W
@@ -104,7 +104,7 @@ def Rust_verifyEvalProof(c, input: LootBoxInput, y, W) -> bool:
     a = str(i & 0b111)
     b = str((i & 0b111000) >> 3)
 
-    output = check_output(["./functional_commitment/verify", W, c[0], c[1], a, b, y])
+    output = check_output(["./functional-commitment/verify", W, c[0], c[1], a, b, y]).strip().decode()
     print(output)
 
     return output == "Verify Success!"

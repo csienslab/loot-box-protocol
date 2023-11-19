@@ -101,7 +101,9 @@ class Rust_ProbabilityVerificationServer():
 			f.write(c[0] + "#" + c[1])
 		
 		self.contribution = PRB.contribute(os.urandom(32))
-            
+		global client_contribution
+		client_contribution = self.contribution    
+
 	def eval(self):
 		seed = PRB.eval(self.contribution)
 		testData = mappingFunction.mapToTestData(seed)
@@ -160,7 +162,7 @@ def Rust_verifyProbability() -> bool:
 		if not Rust_verifyEvalProof(c, input, y, W):
 			print(f"Verification failed on {i}th input, input: {input}, y: {y}, W: {W}")
 			return False
-		if isWinning(y):
+		if y == "1":
 			winningNumber += 1
 
 		if i+1 >= 30 and (i+1) % 5 == 0:
