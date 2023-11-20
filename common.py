@@ -77,20 +77,16 @@ class Rust_FunctionalCommitment():
         self.c = [join(BulletinBoardDir, "vk.bin"), join(BulletinBoardDir, "tft.bin")]
         check_output(["./functional-commitment/commit_function", self.c[0], self.c[1]])
 
-        self.eval_cnt = 0
-
     def getCommitment(self):
         return self.c
 
-    def evalAndProof(self, input: LootBoxInput):
-        
+    def evalAndProof(self, input: LootBoxInput, cnt: int):
         i = int(input.getFieldInput())
         print(f"Eval on input {i}")
         
         a = str(i & 0b111)
         b = str((i & 0b111000) >> 3)
-        W = join(BulletinBoardDir, f"proof{self.eval_cnt}.bin")
-        self.eval_cnt += 1
+        W = join(BulletinBoardDir, f"proof{cnt}.bin")
         output = check_output(["./functional-commitment/make_proof", W, a, b]).strip().decode()
         print(a, b, output)
         y = 1 if output == "Win!" else 0
