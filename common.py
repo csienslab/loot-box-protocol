@@ -24,7 +24,7 @@ def isWinning(y: Field) -> bool:
     return False
 
 
-class LootBoxInput():
+class LootBoxInput:
     def __init__(self, r, o):
         self.r = r
         self.o = o
@@ -35,7 +35,7 @@ class LootBoxInput():
         return F(int(hashed_value, 16))
 
 
-class FunctionalCommitment():
+class FunctionalCommitment:
     def __init__(self, degree=3, randomCoeff=False) -> None:
         self.degree = degree
         if randomCoeff:
@@ -56,6 +56,7 @@ class FunctionalCommitment():
 
         return y, W
 
+
 def verifyEvalProof(c, input: LootBoxInput, y, W) -> bool:
     i = input.getFieldInput()
     print(f"Verify on input {i}, output {y}, witness {W}, commitment {c}")
@@ -66,12 +67,15 @@ def verifyEvalProof(c, input: LootBoxInput, y, W) -> bool:
     g1_phi_at_x_sub_i = curve.add(c, curve.neg(g1_phi_at_i))
     a = curve.pairing(g2_x_sub_i, W)
     b = curve.pairing(curve.G2, curve.neg(g1_phi_at_x_sub_i))
-    ab = a*b
+    ab = a * b
     return ab == curve.FQ12.one()
+
 
 from subprocess import check_output
 from os.path import join
-class Rust_FunctionalCommitment():
+
+
+class Rust_FunctionalCommitment:
     def __init__(self, BulletinBoardDir="") -> None:
         self.BulletinBoardDir = BulletinBoardDir
         self.c = [join(BulletinBoardDir, "vk.bin"), join(BulletinBoardDir, "tft.bin")]
@@ -83,27 +87,37 @@ class Rust_FunctionalCommitment():
     def evalAndProof(self, input: LootBoxInput, cnt: int):
         i = int(input.getFieldInput())
         print(f"Eval on input {i}")
-        
+
         a = str(i & 0b111)
         b = str((i & 0b111000) >> 3)
         W = join(BulletinBoardDir, f"proof{cnt}.bin")
-        output = check_output(["./functional-commitment/make_proof", W, a, b]).strip().decode()
+        output = (
+            check_output(["./functional-commitment/make_proof", W, a, b])
+            .strip()
+            .decode()
+        )
         print(a, b, output)
         y = 1 if output == "Win!" else 0
 
         return y, W
 
+
 def Rust_verifyEvalProof(c, input: LootBoxInput, y, W) -> bool:
     i = int(input.getFieldInput())
     print(f"Verify on input {i}, output {y}, witness {W}, commitment {c}")
-    
+
     a = str(i & 0b111)
     b = str((i & 0b111000) >> 3)
 
-    output = check_output(["./functional-commitment/verify", W, c[0], c[1], a, b, y]).strip().decode()
+    output = (
+        check_output(["./functional-commitment/verify", W, c[0], c[1], a, b, y])
+        .strip()
+        .decode()
+    )
     print(output)
 
     return output == "Verify Success!"
+
 
 if __name__ == "__main__":
     fc = FunctionalCommitment()
