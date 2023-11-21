@@ -5,8 +5,7 @@ import time
 import csv
 import os
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
-
-CPU_CORES = os.cpu_count() // 2
+from argparse import ArgumentParser
 
 rows = [[sampleSize] for sampleSize in range(30, 101, 5)]
 
@@ -234,6 +233,13 @@ def Rust_verifyProbability() -> bool:
 
 
 def sampleRun():
+    server = ProbabilityVerificationServer()
+    server.setup()
+    server.eval()
+    verifyProbability()
+
+
+def Rust_sampleRun():
     server = Rust_ProbabilityVerificationServer()
     server.setup()
     server.eval()
@@ -284,6 +290,16 @@ if __name__ == "__main__":
     # server.eval()
     # verifyProbability()
     # print(rows)
-    sampleRun()
+    # sampleRun()
     # plotDifferentDegree()
     # plotDifferentSampleSize()
+
+    parser = ArgumentParser()
+    parser.add_argument("type", choices=["polyc", "fc"])
+    parser.add_argument("--cpu", type=int, default=os.cpu_count() // 2)
+    args = parser.parse_args()
+    CPU_CORES = args.cpu
+    if args.type == "polyc":
+        sampleRun()
+    elif args.type == "fc":
+        Rust_sampleRun()
