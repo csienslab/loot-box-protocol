@@ -246,7 +246,20 @@ def Rust_sampleRun():
     Rust_verifyProbability()
 
 
-def plotDifferentDegree():
+class FakePRB:
+    def __init__(self):
+        self.r = os.urandom(32)
+
+    def contribute(self, r):
+        pass
+
+    def eval(self, c):
+        return self.r
+
+
+def plotDifferentDegree(output):
+    global PRB
+    PRB = FakePRB()
     server = ProbabilityVerificationServer()
     rows = [["degree", "setup", "evaluation", "verification"]]
     for degree in range(100, 201, 10):
@@ -260,12 +273,14 @@ def plotDifferentDegree():
 
         rows.append([degree, t2 - t1, t3 - t2, t4 - t3])
 
-    with open("experiment/pv_degree_100_200.csv", "w", newline="") as f:
+    with open(output, "w", newline="") as f:
         writer = csv.writer(f)
         writer.writerows(rows)
 
 
-def plotDifferentSampleSize():
+def plotDifferentSampleSize(output):
+    global PRB
+    PRB = FakePRB()
     server = ProbabilityVerificationServer()
     rows = [["Sample Size", "evaluation", "verification"]]
     server.setup(150, True)
@@ -279,7 +294,7 @@ def plotDifferentSampleSize():
 
         rows.append([sampleSize, t3 - t2, t4 - t3])
 
-    with open("experiment/pv_sample_size_30_100.csv", "w", newline="") as f:
+    with open(output, "w", newline="") as f:
         writer = csv.writer(f)
         writer.writerows(rows)
 
@@ -295,11 +310,16 @@ if __name__ == "__main__":
     # plotDifferentSampleSize()
 
     parser = ArgumentParser()
-    parser.add_argument("type", choices=["polyc", "fc"])
+    parser.add_argument("type", choices=["polyc", "fc", "plot_deg", "plot_sample"])
     parser.add_argument("--cpu", type=int, default=os.cpu_count() // 2)
+    parser.add_argument("--output", default="output.csv")
     args = parser.parse_args()
     CPU_CORES = args.cpu
     if args.type == "polyc":
         sampleRun()
     elif args.type == "fc":
         Rust_sampleRun()
+    elif args.type == "plot_deg":
+        plotDifferentDegree(args.output)
+    elif args.type == "plot_sample":
+        plotDifferentSampleSize(args.output)
