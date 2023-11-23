@@ -257,42 +257,44 @@ class FakePRB:
         return self.r
 
 
-def plotDifferentDegree(output):
+def plotDifferentDegree(output, n_samples):
     global PRB
     PRB = FakePRB()
     server = ProbabilityVerificationServer()
     rows = [["degree", "setup", "evaluation", "verification"]]
     for degree in range(100, 201, 10):
-        t1 = time.time()
-        server.setup(degree, True)
-        t2 = time.time()
-        server.eval()
-        t3 = time.time()
-        verifyProbability()
-        t4 = time.time()
+        for _ in range(n_samples):
+            t1 = time.time()
+            server.setup(degree, True)
+            t2 = time.time()
+            server.eval()
+            t3 = time.time()
+            verifyProbability()
+            t4 = time.time()
 
-        rows.append([degree, t2 - t1, t3 - t2, t4 - t3])
+            rows.append([degree, t2 - t1, t3 - t2, t4 - t3])
 
     with open(output, "w", newline="") as f:
         writer = csv.writer(f)
         writer.writerows(rows)
 
 
-def plotDifferentSampleSize(output):
+def plotDifferentSampleSize(output, n_samples):
     global PRB
     PRB = FakePRB()
     server = ProbabilityVerificationServer()
     rows = [["Sample Size", "evaluation", "verification"]]
     server.setup(150, True)
     for sampleSize in range(30, 101, 10):
-        mappingFunction.setSampleSize(sampleSize)
-        t2 = time.time()
-        server.eval()
-        t3 = time.time()
-        verifyProbability()
-        t4 = time.time()
+        for _ in range(n_samples):
+            mappingFunction.setSampleSize(sampleSize)
+            t2 = time.time()
+            server.eval()
+            t3 = time.time()
+            verifyProbability()
+            t4 = time.time()
 
-        rows.append([sampleSize, t3 - t2, t4 - t3])
+            rows.append([sampleSize, t3 - t2, t4 - t3])
 
     with open(output, "w", newline="") as f:
         writer = csv.writer(f)
@@ -313,6 +315,7 @@ if __name__ == "__main__":
     parser.add_argument("type", choices=["polyc", "fc", "plot_deg", "plot_sample"])
     parser.add_argument("--cpu", type=int, default=os.cpu_count() // 2)
     parser.add_argument("--output", default="output.csv")
+    parser.add_argument("--n_samples", type=int, default=10)
     args = parser.parse_args()
     CPU_CORES = args.cpu
     if args.type == "polyc":
@@ -320,6 +323,6 @@ if __name__ == "__main__":
     elif args.type == "fc":
         Rust_sampleRun()
     elif args.type == "plot_deg":
-        plotDifferentDegree(args.output)
+        plotDifferentDegree(args.output, args.n_samples)
     elif args.type == "plot_sample":
-        plotDifferentSampleSize(args.output)
+        plotDifferentSampleSize(args.output, args.n_samples)
