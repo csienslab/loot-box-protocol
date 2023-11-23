@@ -301,6 +301,28 @@ def plotDifferentSampleSize(output, n_samples):
         writer.writerows(rows)
 
 
+def plotDifferentSampleSize_rust(output, n_samples):
+    global PRB
+    PRB = FakePRB()
+    server = Rust_ProbabilityVerificationServer()
+    rows = [["Sample Size", "evaluation", "verification"]]
+    server.setup()
+    for sampleSize in range(30, 101, 10):
+        for _ in range(n_samples):
+            mappingFunction.setSampleSize(sampleSize)
+            t2 = time.time()
+            server.eval()
+            t3 = time.time()
+            Rust_verifyProbability()
+            t4 = time.time()
+
+            rows.append([sampleSize, t3 - t2, t4 - t3])
+
+    with open(output, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerows(rows)
+
+
 if __name__ == "__main__":
     # server = ProbabilityVerificationServer()
     # server.setup(3, True)
@@ -312,7 +334,9 @@ if __name__ == "__main__":
     # plotDifferentSampleSize()
 
     parser = ArgumentParser()
-    parser.add_argument("type", choices=["polyc", "fc", "plot_deg", "plot_sample"])
+    parser.add_argument(
+        "type", choices=["polyc", "fc", "plot_deg", "plot_sample", "plot_sample_fc"]
+    )
     parser.add_argument("--cpu", type=int, default=os.cpu_count() // 2)
     parser.add_argument("--output", default="output.csv")
     parser.add_argument("--n_samples", type=int, default=10)
@@ -326,3 +350,5 @@ if __name__ == "__main__":
         plotDifferentDegree(args.output, args.n_samples)
     elif args.type == "plot_sample":
         plotDifferentSampleSize(args.output, args.n_samples)
+    elif args.type == "plot_sample_fc":
+        plotDifferentSampleSize_rust(args.output, args.n_samples)
