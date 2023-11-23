@@ -60,3 +60,17 @@ plot_data(
     {"setup": "blue", "evaluation": "orange", "verification": "gray"},
 )
 plt.savefig("poly_sample.png")
+
+df3 = pd.read_csv("fc_samples.csv")
+df3["setup"] = 0  # Adding 'setup' as 0 for the second dataset
+df3 = df3.groupby("Sample Size").agg(["mean", "std"])
+print(df3)
+plot_data(
+    df3,
+    ["setup", "evaluation", "verification"],
+    "Probability Verification (over different sample sizes)",
+    "Sample Size (Function Commitment, Parallelism = 8, Runs = 10)",
+    "Execution Time (s)",
+    {"setup": "blue", "evaluation": "orange", "verification": "gray"},
+)
+plt.savefig("fc_samples.png")
