@@ -284,7 +284,7 @@ def plotDifferentSampleSize(output, n_samples):
     PRB = FakePRB()
     server = ProbabilityVerificationServer()
     rows = [["Sample Size", "setup", "evaluation", "verification"]]
-    
+
     for sampleSize in range(30, 101, 10):
         for _ in range(n_samples):
             mappingFunction.setSampleSize(sampleSize)

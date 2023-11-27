@@ -30,7 +30,8 @@ def plot_data(df, y_columns, title, xlabel, ylabel, colors):
         )
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
-    plt.title(title)
+    if title:
+        plt.title(title)
     plt.legend()
     plt.grid(True)
 
@@ -40,7 +41,8 @@ print(df1)
 plot_data(
     df1,
     ["setup", "evaluation", "verification"],
-    "Probability Verification (over different polynomial degrees)",
+    # "Probability Verification (over different polynomial degrees)",
+    None,
     "Polynomial Degree (Sample Size = 30, Parallelism = 8, Runs = 10)",
     "Execution Time (s)",
     {"setup": "blue", "evaluation": "orange", "verification": "gray"},
@@ -48,13 +50,13 @@ plot_data(
 plt.savefig("poly_deg.png")
 
 df2 = pd.read_csv("poly_sample.csv")
-df2["setup"] = 0  # Adding 'setup' as 0 for the second dataset
 df2 = df2.groupby("Sample Size").agg(["mean", "std"])
 print(df2)
 plot_data(
     df2,
     ["setup", "evaluation", "verification"],
-    "Probability Verification (over different sample sizes)",
+    # "Probability Verification (over different sample sizes)",
+    None,
     "Sample Size (Degree = 150, Parallelism = 8, Runs = 10)",
     "Execution Time (s)",
     {"setup": "blue", "evaluation": "orange", "verification": "gray"},
@@ -62,13 +64,13 @@ plot_data(
 plt.savefig("poly_sample.png")
 
 df3 = pd.read_csv("fc_samples.csv")
-df3["setup"] = 0  # Adding 'setup' as 0 for the second dataset
 df3 = df3.groupby("Sample Size").agg(["mean", "std"])
 print(df3)
 plot_data(
     df3,
     ["setup", "evaluation", "verification"],
-    "Probability Verification (over different sample sizes)",
+    # "Probability Verification (over different sample sizes)",
+    None,
     "Sample Size (Function Commitment, Parallelism = 8, Runs = 10)",
     "Execution Time (s)",
     {"setup": "blue", "evaluation": "orange", "verification": "gray"},
