@@ -283,18 +283,20 @@ def plotDifferentSampleSize(output, n_samples):
     global PRB
     PRB = FakePRB()
     server = ProbabilityVerificationServer()
-    rows = [["Sample Size", "evaluation", "verification"]]
+    rows = [["Sample Size", "setup", "evaluation", "verification"]]
     server.setup(150, True)
     for sampleSize in range(30, 101, 10):
         for _ in range(n_samples):
             mappingFunction.setSampleSize(sampleSize)
+            t1 = time.time()
+            server.setup()
             t2 = time.time()
             server.eval()
             t3 = time.time()
             verifyProbability()
             t4 = time.time()
 
-            rows.append([sampleSize, t3 - t2, t4 - t3])
+            rows.append([sampleSize, t2 - t1, t3 - t2, t4 - t3])
 
     with open(output, "w", newline="") as f:
         writer = csv.writer(f)
@@ -305,18 +307,19 @@ def plotDifferentSampleSize_rust(output, n_samples):
     global PRB
     PRB = FakePRB()
     server = Rust_ProbabilityVerificationServer()
-    rows = [["Sample Size", "evaluation", "verification"]]
-    server.setup()
+    rows = [["Sample Size", "setup", "evaluation", "verification"]]
     for sampleSize in range(30, 101, 10):
         for _ in range(n_samples):
             mappingFunction.setSampleSize(sampleSize)
+            t1 = time.time()
+            server.setup()
             t2 = time.time()
             server.eval()
             t3 = time.time()
             Rust_verifyProbability()
             t4 = time.time()
 
-            rows.append([sampleSize, t3 - t2, t4 - t3])
+            rows.append([sampleSize, t2 - t1, t3 - t2, t4 - t3])
 
     with open(output, "w", newline="") as f:
         writer = csv.writer(f)
