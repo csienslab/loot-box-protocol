@@ -7,6 +7,7 @@ import operator
 from py_ecc import optimized_bn128 as curve
 import numpy as np
 import galois
+import gmpy2
 
 """
 Implementation of PolyCommit_{DL} from:
@@ -46,8 +47,8 @@ class Field(object):
             value = value.v % modulus
         else:
             value = value % modulus
-        self.v = value
-        self.m = modulus
+        self.v = gmpy2.mpz(value)
+        self.m = gmpy2.mpz(modulus)
 
     def __eq__(self, other):
         if isinstance(other, int):
@@ -58,7 +59,7 @@ class Field(object):
             raise ValueError(f"Cannot compare {self} with {other}")
 
     def __int__(self):
-        return self.v
+        return int(self.v)
 
     def __add__(self, other):
         if isinstance(other, Field):
@@ -86,10 +87,10 @@ class Field(object):
 
     def __pow__(self, other):
         assert isinstance(other, int)
-        return Field(pow(self.v, other, self.m), self.m)
+        return Field(gmpy2.powmod(self.v, other, self.m), self.m)
 
     def inverse(self):
-        return Field(pow(self.v, -1, self.m), self.m)
+        return Field(gmpy2.invert(self.v, self.m), self.m)
 
 
 class GF(object):
@@ -107,9 +108,9 @@ class GF(object):
         while True:
             # x != 0, g = x^(q-1/n)
             # if g^(n/2) != 1, then it is a primitive n-th root
-            g = pow(int(x), (self.m - 1) // n, self.m)
-            if pow(g, n // 2, self.m) != 1:
-                return self(g)
+            g = gmpy2.powmod(int(x), (self.m - 1) // n, self.m)
+            if gmpy2.powmod(g, n // 2, self.m) != 1:
+                return self(int(g))
             x += 1
 
     def random(self):
