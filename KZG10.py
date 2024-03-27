@@ -76,6 +76,9 @@ class Field(object):
 
     def __repr__(self):
         return f"Field<{self.v}>"
+    
+    def __str__(self):
+        return str(self.v)
 
     def __sub__(self, other):
         if isinstance(other, Field):
