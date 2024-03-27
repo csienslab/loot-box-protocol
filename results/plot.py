@@ -28,11 +28,11 @@ def plot_data(df, y_columns, title, xlabel, ylabel, colors):
             alpha=0.2,
             color=colors[y_column],
         )
-    plt.xlabel(xlabel)
-    plt.ylabel(ylabel)
+    plt.xlabel(xlabel, fontsize=14)
+    plt.ylabel(ylabel, fontsize=14)
     if title:
         plt.title(title)
-    plt.legend()
+    plt.legend(loc="best", fontsize=14)
     plt.grid(True)
 
 
