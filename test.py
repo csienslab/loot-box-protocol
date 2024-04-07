@@ -5,8 +5,11 @@ from pywebio.output import (
     put_markdown,
     put_code,
     put_button,
+    put_image,
     use_scope,
     clear,
+    popup,
+    close_popup,
 )
 from pywebio.session import run_js
 from pywebio import start_server
@@ -42,6 +45,12 @@ def post_process(y):
     return f"1 star: card #{idx}"
 
 
+phases_images = {}
+for i in range(1, 5):
+    with open(f"./pic/phase{i}.png", "rb") as f:
+        phases_images[f"phase{i}"] = f.read()
+
+
 def main():
     run_js(
         """
@@ -65,9 +74,35 @@ loadscript({ src: 'https://cdn.jsdelivr.net/npm/brython@3.12.2/brython_stdlib.js
     with use_scope("setup"):
         put_markdown("# Setup Phase")
         put_text(f"FC: {commitment}")
+        put_button(
+            "What is this?",
+            onclick=lambda: popup(
+                "Phase 1",
+                [
+                    put_text(
+                        "In this phase, the server committ a hidden function f(x). The source code of the mapping function will be provided later for easier understanding."
+                    ),
+                    put_image(phases_images["phase1"]),
+                ],
+                size="large",
+            ),
+        )
 
     with use_scope("randomness_contribution"):
         put_markdown("# Randomness Contribution Phase")
+        put_button(
+            "What is this?",
+            onclick=lambda: popup(
+                "Phase 2",
+                [
+                    put_text(
+                        "You can choose to contribute to PRB and get verified randomness from it, or you can enter a fake randomness for testing purpose."
+                    ),
+                    put_image(phases_images["phase2"]),
+                ],
+                size="large",
+            ),
+        )
         yesprb = actions(
             "Do you want to contribute to PRB?",
             [
@@ -81,12 +116,12 @@ loadscript({ src: 'https://cdn.jsdelivr.net/npm/brython@3.12.2/brython_stdlib.js
             put_text(f"Contribution: {contribution}")
             put_text("Getting verified PRB randomness, please wait...")
             randomness = PRB.eval(contribution)
-            put_text(f"Verified PRB Randomness: {randomness.hex()}")
+            put_text(f"Verified PRB Randomness (hex): {randomness.hex()}")
         else:
             randomness = input(
                 "Enter your fake PRB randomness (random string):", type=TEXT
             ).encode()
-            put_text(f"Fake PRB Randomness: {randomness.hex()}")
+            put_text(f"Fake PRB Randomness (hex): {randomness.hex()}")
 
         put_text(
             "The randomness will be mapped to inputs using the following function:"
@@ -99,6 +134,19 @@ loadscript({ src: 'https://cdn.jsdelivr.net/npm/brython@3.12.2/brython_stdlib.js
 
     with use_scope("evaluation"):
         put_markdown("# Evaluation Phase")
+        put_button(
+            "What is this?",
+            onclick=lambda: popup(
+                "Phase 3",
+                [
+                    put_text(
+                        "Now we will generates a bunch of x using the mapping function, and evaluate the hidden function f(x) at each x and post-process the result to get your Gacha result."
+                    ),
+                    put_image(phases_images["phase3"]),
+                ],
+                size="large",
+            ),
+        )
         with use_scope("evaluation_history"):
             put_markdown("## Evaluation History")
         with use_scope("evaluation_loop"):
@@ -148,6 +196,19 @@ loadscript({ src: 'https://cdn.jsdelivr.net/npm/brython@3.12.2/brython_stdlib.js
 
     with use_scope("verification"):
         put_markdown("# Verification Phase")
+        put_button(
+            "What is this?",
+            onclick=lambda: popup(
+                "Phase 4",
+                [
+                    put_text(
+                        "This phase will allow you to verify the correctness of the evaluation against the function commitment. You can enter x and y to verify the proof."
+                    ),
+                    put_image(phases_images["phase4"]),
+                ],
+                size="large",
+            ),
+        )
         while True:
             info = input_group(
                 "Verify (Currently this sends the data to the server for verification)",
