@@ -35,11 +35,11 @@ def post_process(y):
     if p < 0.03:
         pp = p / 0.03
         idx = int(pp * star3)
-        return f"3 start: card #{idx}"
+        return f"3 star: card #{idx}"
     if p < 0.2:
         pp = (p - 0.03) / 0.17
         idx = int(pp * star2)
-        return f"2 start: card #{idx}"
+        return f"2 star: card #{idx}"
     pp = (p - 0.2) / 0.8
     idx = int(pp * star1)
     return f"1 star: card #{idx}"
