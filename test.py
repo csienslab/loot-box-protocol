@@ -10,11 +10,15 @@ from pywebio.output import (
     clear,
     popup,
     close_popup,
+    put_collapse,
+    scroll_to,
 )
 from pywebio.session import run_js
 from pywebio import start_server
 import PRB
-import inspect
+import inspect, ast, io
+from py_ecc import optimized_bn128 as curve
+import matplotlib.pyplot as plt
 
 
 def mapping_function(randomness: bytes):
@@ -147,54 +151,82 @@ loadscript({ src: 'https://cdn.jsdelivr.net/npm/brython@3.12.2/brython_stdlib.js
                 size="large",
             ),
         )
-        with use_scope("evaluation_history"):
-            put_markdown("## Evaluation History")
+        xs = []
+        ys = []
+        pis = []
+        cards = []
         with use_scope("evaluation_loop"):
-            keep_running = True
-            n_tries = 1
-            while keep_running:
-                clear()
-                put_markdown(f"## #{n_tries} Evaluation Loop")
-                x = next(inputs_generator)
-                put_text(f"Evaluate at x = {x}")
-                y, pi = fc.evalAndProofRaw(x)
-                put_text(f"Evaluated value y = f(x) = {y}")
-                put_text(f"Evaluation Proof: {pi}")
-                assert verifyEvalProofRaw(commitment, F(x), y, pi)
+            x = next(inputs_generator)
+            xs.append(x)
+            put_text(f"Evaluate at x = {x}")
+            y, pi = fc.evalAndProofRaw(x)
+            ys.append(y)
+            pis.append(pi)
+            put_text(f"Evaluated value y = f(x) = {y}")
+            put_text(f"Evaluation Proof: {pi}")
+            assert verifyEvalProofRaw(commitment, F(x), y, pi)
 
-                put_text(
-                    "The y will be going through post-processing to get the result:"
+            put_text("The y will be going through post-processing to get the result:")
+            put_code(
+                inspect.getsource(post_process), language="python"
+            )  # publicize the post_process function
+
+            def run_post_process_client(y=y):
+                py = f"from browser import alert\n{inspect.getsource(post_process)}\nres = post_process({y})\nalert(res)\n"
+                js = "__BRYTHON__.runPythonSource(py)"
+                run_js(js, py=py)
+
+            put_button(
+                "Run this on client side (powered by Brython)",
+                onclick=run_post_process_client,
+            )
+            card = post_process(y)
+            cards.append(card)
+            put_text(f"You got: {card}")
+
+            how_much_more = int(
+                input(
+                    "How many more evaluations do you want?", type=NUMBER, value="100"
                 )
-                put_code(
-                    inspect.getsource(post_process), language="python"
-                )  # publicize the post_process function
+            )
 
-                def run_post_process_client():
-                    py = f"from browser import alert\n{inspect.getsource(post_process)}\nres = post_process({y})\nalert(res)\n"
-                    js = "__BRYTHON__.runPythonSource(py)"
-                    run_js(js, py=py)
+            with put_collapse("Show all evaluations"):
+                for _ in range(how_much_more):
+                    x = next(inputs_generator)
+                    xs.append(x)
+                    put_text(f"Evaluate at x = {x}")
+                    y, pi = fc.evalAndProofRaw(x)
+                    ys.append(y)
+                    pis.append(pi)
+                    put_text(f"Evaluated value y = f(x) = {y}")
+                    put_text(f"Evaluation Proof: {pi}")
+                    card = post_process(y)
+                    cards.append(card)
+                    put_text(f"You got: {card}")
+                    print(str(commitment), str(x), str(y), str(pi))
 
-                put_button(
-                    "Run this on client side (powered by Brython)",
-                    onclick=run_post_process_client,
-                )
-                put_text(f"You got: {post_process(y)}")
-
-                keep_running = actions(
-                    "Do you want to try another evaluation?",
-                    [
-                        {"label": "Yes", "value": True},
-                        {"label": "No", "value": False},
-                    ],
-                )
-                if keep_running:
-                    put_text(
-                        f"#{n_tries} output generated from mapping function: {x = }",
-                        scope="evaluation_history",
-                    )
-                    n_tries += 1
+    stars = [int(card.split(" star")[0].strip()) for card in cards]
+    fig, ax = plt.subplots()
+    ax.hist(stars, bins=[0.5, 1.5, 2.5, 3.5], align="mid")
+    ax.set_xlabel("Stars")
+    ax.set_ylabel("Count")
+    ax.set_title("Gacha Result")
+    # show percentage on top of bars
+    for i in range(3):
+        n = len([s for s in stars if s == i + 1])
+        ax.text(
+            i + 1,
+            n,
+            f"{n / len(stars) * 100:.2f}%",
+            ha="center",
+            va="bottom",
+        )
+    buf = io.BytesIO()
+    fig.savefig(buf)
+    put_image(buf.getvalue())
 
     with use_scope("verification"):
+        scroll_to("verification")
         put_markdown("# Verification Phase")
         put_button(
             "What is this?",
@@ -218,14 +250,17 @@ loadscript({ src: 'https://cdn.jsdelivr.net/npm/brython@3.12.2/brython_stdlib.js
                         type=TEXT,
                         value=str(commitment),
                         name="c",
-                        readonly=True,
                     ),
                     input("x", type=TEXT, value=str(x), name="x"),
                     input("y", type=TEXT, value=str(y), name="y"),
-                    input("Proof", type=TEXT, value=str(pi), name="pi", readonly=True),
+                    input("Proof", type=TEXT, value=str(pi), name="pi"),
                 ],
             )
-            if verifyEvalProofRaw(commitment, F(int(info["x"])), F(int(info["y"])), pi):
+            cc = tuple(map(curve.FQ, ast.literal_eval(info["c"])))
+            xx = F(int(info["x"]))
+            yy = F(int(info["y"]))
+            pipi = tuple(map(curve.FQ, ast.literal_eval(info["pi"])))
+            if verifyEvalProofRaw(cc, xx, yy, pipi):
                 put_text(f"Verify Success with x = {info['x']}, y = {info['y']}")
             else:
                 put_text(f"Verify Failed with x = {info['x']}, y = {info['y']}")
