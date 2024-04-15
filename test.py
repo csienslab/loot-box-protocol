@@ -12,6 +12,8 @@ from pywebio.output import (
     close_popup,
     put_collapse,
     scroll_to,
+    put_progressbar,
+    set_progressbar,
 )
 from pywebio.session import run_js
 from pywebio import start_server
@@ -19,6 +21,8 @@ import PRB
 import inspect, ast, io
 from py_ecc import optimized_bn128 as curve
 import matplotlib.pyplot as plt
+import numpy as np
+import scipy.stats as st
 
 
 def mapping_function(randomness: bytes):
@@ -185,13 +189,12 @@ loadscript({ src: 'https://cdn.jsdelivr.net/npm/brython@3.12.2/brython_stdlib.js
             put_text(f"You got: {card}")
 
             how_much_more = int(
-                input(
-                    "How many more evaluations do you want?", type=NUMBER, value="100"
-                )
+                input("How many more evaluations do you want?", type=NUMBER, value=500)
             )
 
+            put_progressbar("eval_progress")
             with put_collapse("Show all evaluations"):
-                for _ in range(how_much_more):
+                for i in range(how_much_more):
                     x = next(inputs_generator)
                     xs.append(x)
                     put_text(f"Evaluate at x = {x}")
@@ -203,7 +206,8 @@ loadscript({ src: 'https://cdn.jsdelivr.net/npm/brython@3.12.2/brython_stdlib.js
                     card = post_process(y)
                     cards.append(card)
                     put_text(f"You got: {card}")
-                    print(str(commitment), str(x), str(y), str(pi))
+                    pg = i / (how_much_more - 1) if how_much_more > 1 else 1
+                    set_progressbar("eval_progress", pg)
 
     stars = [int(card.split(" star")[0].strip()) for card in cards]
     fig, ax = plt.subplots()
@@ -211,16 +215,42 @@ loadscript({ src: 'https://cdn.jsdelivr.net/npm/brython@3.12.2/brython_stdlib.js
     ax.set_xlabel("Stars")
     ax.set_ylabel("Count")
     ax.set_title("Gacha Result")
+    probabilities = {
+        i: len([s for s in stars if s == i]) / len(stars) for i in range(1, 4)
+    }
     # show percentage on top of bars
     for i in range(3):
         n = len([s for s in stars if s == i + 1])
         ax.text(
             i + 1,
             n,
-            f"{n / len(stars) * 100:.2f}%",
+            f"{probabilities[i + 1] * 100:.2f}%",
             ha="center",
             va="bottom",
         )
+    buf = io.BytesIO()
+    fig.savefig(buf)
+    put_image(buf.getvalue())
+
+    n = len(stars)
+    p0 = 0.03
+    p1 = probabilities[3]
+    mu = p0
+    std = (p0 * (1 - p0) / n) ** 0.5
+    za = st.norm.ppf(0.95)
+    lb = mu - za * std
+    # draw normal distribution with a horizontal line at p0 and p1
+    fig, ax = plt.subplots()
+    xs = np.linspace(0, 0.1, 1000)
+    ys = 1 / (std * (2 * np.pi) ** 0.5) * np.exp(-0.5 * ((xs - mu) / std) ** 2)
+    ax.plot(xs, ys, label="Normal Distribution (CLT)")
+    ax.axvline(p0, color="r", linestyle="--", label="Claimed probability")
+    ax.axvline(p1, color="g", linestyle="--", label="Estimated probability")
+    ax.axvline(lb, color="b", linestyle="--", label="95% confidence interval")
+    ax.legend()
+    ax.set_xlabel("Probability")
+    ax.set_ylabel("Density")
+    ax.set_title("Normal Distribution of Gacha Result")
     buf = io.BytesIO()
     fig.savefig(buf)
     put_image(buf.getvalue())
