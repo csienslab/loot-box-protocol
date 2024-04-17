@@ -39,16 +39,19 @@ def post_process(y):
     star3 = 10  # number of 3 star cards
     star2 = 30  # number of 2 star cards
     star1 = 100  # number of 1 star cards
+    prob3 = 0.03
+    prob2 = 0.17
+    prob_cum23 = prob2 + prob3
     p = int(y) / m
-    if p < 0.03:
-        pp = p / 0.03
+    if p < prob3:
+        pp = p / prob3
         idx = int(pp * star3)
         return f"3 star: card #{idx}"
-    if p < 0.2:
-        pp = (p - 0.03) / 0.17
+    if p < prob_cum23:
+        pp = (p - prob3) / prob2
         idx = int(pp * star2)
         return f"2 star: card #{idx}"
-    pp = (p - 0.2) / 0.8
+    pp = (p - prob_cum23) / (1 - prob_cum23)
     idx = int(pp * star1)
     return f"1 star: card #{idx}"
 
@@ -232,28 +235,32 @@ loadscript({ src: 'https://cdn.jsdelivr.net/npm/brython@3.12.2/brython_stdlib.js
     fig.savefig(buf)
     put_image(buf.getvalue())
 
-    n = len(stars)
-    p0 = 0.03
-    p1 = probabilities[3]
-    mu = p0
-    std = (p0 * (1 - p0) / n) ** 0.5
-    za = st.norm.ppf(0.95)
-    lb = mu - za * std
-    # draw normal distribution with a horizontal line at p0 and p1
-    fig, ax = plt.subplots()
-    xs = np.linspace(0, 0.1, 1000)
-    ys = 1 / (std * (2 * np.pi) ** 0.5) * np.exp(-0.5 * ((xs - mu) / std) ** 2)
-    ax.plot(xs, ys, label="Normal Distribution (CLT)")
-    ax.axvline(p0, color="r", linestyle="--", label="Claimed probability")
-    ax.axvline(p1, color="g", linestyle="--", label="Estimated probability")
-    ax.axvline(lb, color="b", linestyle="--", label="95% confidence interval")
-    ax.legend()
-    ax.set_xlabel("Probability")
-    ax.set_ylabel("Density")
-    ax.set_title("Normal Distribution of Gacha Result")
-    buf = io.BytesIO()
-    fig.savefig(buf)
-    put_image(buf.getvalue())
+    def plot_prob(p0, p1, title):
+        n = len(stars)
+        mu = p0
+        std = (p0 * (1 - p0) / n) ** 0.5
+        za = st.norm.ppf(0.95)
+        lb = mu - za * std
+        fig, ax = plt.subplots()
+        xs = np.linspace(max(mu - 2 * std, 0), min(mu + 2 * std, 1), 2000)
+        ys = 1 / (std * (2 * np.pi) ** 0.5) * np.exp(-0.5 * ((xs - mu) / std) ** 2)
+        ax.plot(xs, ys, label="Normal Distribution (CLT)")
+        ax.axvline(p0, color="r", linestyle="--", label="Claimed probability")
+        ax.axvline(p1, color="g", linestyle="--", label="Estimated probability")
+        ax.axvline(lb, color="b", linestyle="--", label="95% confidence interval")
+        ax.legend()
+        ax.set_xlabel("Probability")
+        ax.set_ylabel("Density")
+        ax.set_title(title)
+        buf = io.BytesIO()
+        fig.savefig(buf)
+        put_image(buf.getvalue())
+
+    put_text(
+        "If green line is at the left of blue line, we can say that the claimed probability is not true with 95% confidence."
+    )
+    plot_prob(0.03, probabilities[3], "Normal Distribution of Gacha Result: 3 Star")
+    plot_prob(0.17, probabilities[2], "Normal Distribution of Gacha Result: 2 Star")
 
     with use_scope("verification"):
         scroll_to("verification")
