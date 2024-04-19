@@ -1,5 +1,13 @@
 from common import F, FunctionalCommitment, LootBoxInput, verifyEvalProofRaw
-from pywebio.input import input, input_group, actions, NUMBER, TEXT
+from pywebio.input import (
+    input,
+    input_group,
+    actions,
+    select,
+    input_update,
+    NUMBER,
+    TEXT,
+)
 from pywebio.output import (
     put_text,
     put_markdown,
@@ -257,7 +265,7 @@ loadscript({ src: 'https://cdn.jsdelivr.net/npm/brython@3.12.2/brython_stdlib.js
         put_image(buf.getvalue())
 
     put_text(
-        "If green line is at the left of blue line, we can say that the claimed probability is not true with 95% confidence."
+        "If you repeat this experiment 100 times, the green line should be at the right of blue line at least 95 times."
     )
     plot_prob(0.03, probabilities[3], "Normal Distribution of Gacha Result: 3 Star")
     plot_prob(0.17, probabilities[2], "Normal Distribution of Gacha Result: 2 Star")
@@ -278,10 +286,23 @@ loadscript({ src: 'https://cdn.jsdelivr.net/npm/brython@3.12.2/brython_stdlib.js
                 size="large",
             ),
         )
+
+        def handle_prefill(c):
+            c = int(c)
+            input_update("x", value=str(xs[c]))
+            input_update("y", value=str(ys[c]))
+            input_update("pi", value=str(pis[c]))
+
         while True:
             info = input_group(
                 "Verify (Currently this sends the data to the server for verification)",
                 [
+                    select(
+                        "Pre-fill verification with previous evaluation result",
+                        options=[str(i) for i in range(len(xs))],
+                        onchange=handle_prefill,
+                        name="prefill",
+                    ),
                     input(
                         "Commitment",
                         type=TEXT,
