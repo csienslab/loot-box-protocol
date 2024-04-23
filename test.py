@@ -6,6 +6,7 @@ from pywebio.input import (
     select,
     input_update,
     NUMBER,
+    FLOAT,
     TEXT,
 )
 from pywebio.output import (
@@ -31,6 +32,7 @@ from py_ecc import optimized_bn128 as curve
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy.stats as st
+import math
 
 
 def mapping_function(randomness: bytes):
@@ -199,9 +201,50 @@ loadscript({ src: 'https://cdn.jsdelivr.net/npm/brython@3.12.2/brython_stdlib.js
             cards.append(card)
             put_text(f"You got: {card}")
 
-            how_much_more = int(
-                input("How many more evaluations do you want?", type=NUMBER, value=500)
+            choose_manually = actions(
+                "Do you want want to choose the number of evaluations manually or let statistics decide an appropriate number?",
+                [
+                    {"label": "Choose manually", "value": True},
+                    {"label": "Let statistics decide", "value": False},
+                ],
             )
+            if choose_manually:
+                how_much_more = int(
+                    input(
+                        "How many more evaluations do you want?", type=NUMBER, value=500
+                    )
+                )
+            else:
+                put_text(
+                    'We call the "claimed" probability of getting a 3 star card being p0=0.03 a "Null Hypothesis".'
+                )
+                put_text(
+                    'Assuming the "real" probability is p1, we can decide a sample size to reject the Null Hypothesis with a certain probability called statistical power.'
+                )
+                while True:
+                    p1 = input(
+                        'Enter your "assumed" real probability of getting a 3 star card (p1, p1 <= 0.015):',
+                        type=FLOAT,
+                    )
+                    if p1 <= 0.015:
+                        break
+                    put_text("p1 should be less than or equal to 0.015")
+                put_text(
+                    "We will calculate an appropriate sample size n with statistical power 0.8"
+                )
+                p0 = 0.03
+                z_alpha = st.norm.ppf(0.95)
+                z_beta = st.norm.ppf(0.8)
+                # p1 + z_beta * sqrt(p1*(1-p1)/n) <= p0 - z_alpha * sqrt(p0*(1-p0)/n)
+                numerator = z_beta * math.sqrt(p1 * (1 - p1)) + z_alpha * math.sqrt(
+                    p0 * (1 - p0)
+                )
+                denominator = p0 - p1
+                n = math.ceil((numerator / denominator) ** 2)
+                lhs = p1 + z_beta * math.sqrt(p1 * (1 - p1) / n)
+                rhs = p0 - z_alpha * math.sqrt(p0 * (1 - p0) / n)
+                put_text(f"Appropriate sample size n: {n}")
+                how_much_more = n
 
             put_progressbar("eval_progress")
             with put_collapse("Show all evaluations"):
@@ -264,9 +307,14 @@ loadscript({ src: 'https://cdn.jsdelivr.net/npm/brython@3.12.2/brython_stdlib.js
         fig.savefig(buf)
         put_image(buf.getvalue())
 
-    put_text(
-        "If you repeat this experiment 100 times, the green line should be at the right of blue line at least 95 times."
-    )
+    if choose_manually:
+        put_text(
+            "If you repeat this experiment 100 times, the green line should be at the right of blue line at least 95 times."
+        )
+    else:
+        put_text(
+            f"If the green line is at the left of blue line, we can 80% sure that the claimed probability is wrong if the real probability is {p1=}"
+        )
     plot_prob(0.03, probabilities[3], "Normal Distribution of Gacha Result: 3 Star")
     plot_prob(0.17, probabilities[2], "Normal Distribution of Gacha Result: 2 Star")
 
