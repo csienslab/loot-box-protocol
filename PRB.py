@@ -13,8 +13,11 @@
 
 from headstart.client import HeadStartClient
 from hashlib import sha256
+import os
 
-client = HeadStartClient.from_server_url("http://ws3.csie.ntu.edu.tw:35353")
+headstart_server = os.environ.get("HEADSTART_SERVER", "http://localhost:5000")
+
+client = HeadStartClient.from_server_url(headstart_server)
 
 
 def contribute(r: bytes):
